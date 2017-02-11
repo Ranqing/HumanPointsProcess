@@ -3,10 +3,10 @@
 
 #include "../../../Qing/qing_common.h"
 
-typedef pcl::PointXYZRGBNormal QingPoint;
+//only process with point with xyz,rgb
+typedef pcl::PointXYZRGB QingPoint;
 typedef pcl::PointCloud<QingPoint> QingPointcloud;
 typedef pcl::PointCloud<QingPoint>::Ptr QingPointcloudPtr;
-
 
 class PointcloudProcesser
 {
@@ -15,7 +15,7 @@ public:
     ~PointcloudProcesser() ;
 
     void load_ply(const string infile);
-    void save_std_ply(const string outfile, QingPointcloudPtr cloud);
+    void save_ply(const string outfile);
     void down_sampling(const string outfile);
     void outliers_removal(const string outfile);
     void mls_resample(const string outfile);

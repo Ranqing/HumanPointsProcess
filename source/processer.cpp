@@ -23,9 +23,9 @@ void PointcloudProcesser::load_ply(const string filename) {
          << " data points (" << pcl::getFieldsList(*m_cloud) << "). " << endl;
 }
 
-void PointcloudProcesser::save_std_ply(const string outfile, QingPointcloudPtr cloud) {
+void PointcloudProcesser::save_ply(const string outfile) {
     pcl::PLYWriter writer;
-    writer.write(outfile, *cloud);
+    writer.write(outfile, *m_cloud_filtered);
     cout << "saving " << outfile << endl;
 }
 
@@ -60,7 +60,7 @@ void PointcloudProcesser::down_sampling(const string outfile) {
         cout << "after down-sampling, pointcloud size: " << dst_size << ", leafsize = " << leafsize << endl;
     }
 #if 1
-    save_std_ply(outfile, m_cloud_filtered);
+    save_ply(outfile);
 # endif
     m_cloud = m_cloud_filtered->makeShared();
 }
@@ -77,7 +77,7 @@ void PointcloudProcesser::outliers_removal(const string outfile) {
 
     cout << "after outliers removal: " << *m_cloud_filtered << std::endl;
 # if 1
-    save_std_ply(outfile, m_cloud_filtered);
+    save_ply(outfile);
 # endif
     m_cloud = m_cloud_filtered->makeShared();
 }
@@ -97,7 +97,7 @@ void PointcloudProcesser::mls_resample(const string outfile) {
 
     cout << "after msl_resample: " << *m_cloud_filtered << endl;
 # if 1
-    save_std_ply(outfile, m_cloud_filtered);
+    save_ply(outfile);
 # endif
     m_cloud = m_cloud_filtered->makeShared();
 }
