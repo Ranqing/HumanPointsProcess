@@ -1,4 +1,5 @@
 #include "../../../Qing/qing_dir.h"
+#include "../../../Qing/qing_string.h"
 
 #include "processer.h"
 #include "converter.h"
@@ -9,7 +10,7 @@ void convert(const string& src_file_name, const string& dst_file_name) {
 
     pcl::PLYReader reader;
     reader.read(src_file_name, *src_pointcloud);
-    int size = src_pointcloud->width * src_pointcloud->height;
+    int size = src_pointcloud->points.size();
     if(0==size) {
         cerr << "failed to load " << src_file_name << endl;
         return ;
@@ -34,7 +35,7 @@ void convert(const string& src_file_name, const string& dst_file_name) {
 
 int main(int argc, char * argv[])
 {
-    cout << "Usage: " << argv[0] << " FRM_0259" << endl;
+    cout << "Usage: " << argv[0] << " FRM_0245" << endl;
     if(2!=argc) {
         cerr << "invalid arguments." << endl;
         return -1;
@@ -52,13 +53,13 @@ int main(int argc, char * argv[])
     qing_get_all_files(frame_data_folder, all_points_files);
     cout << all_points_files.size() << " files " << endl;
 
+#if 0   //first time will be 1
     for (int i = 0, size = all_points_files.size(); i < size; ++i) {
         string src_file_name = frame_data_folder + all_points_files[i];
         string dst_file_name = out_data_folder + all_points_files[i];
         convert(src_file_name, dst_file_name);
     }
-
-    return 1;
+#endif
 
     PointcloudProcesser * processer = new PointcloudProcesser();
     if(NULL==processer) {
@@ -66,31 +67,38 @@ int main(int argc, char * argv[])
         return -1;
     }
 
+    string ply_file_name, out_file_name;
+
     for(int i = 0, size = all_points_files.size(); i < size; ++i) {
-        string ply_file_name = frame_data_folder + all_points_files[i];
+        ply_file_name = frame_data_folder + all_points_files[i];
         processer->load_ply(ply_file_name);
 
-        if( true == processer->get_is_loaded() ) {
-            string out_file_name = out_data_folder + "sub_" + all_points_files[i];
-            processer->down_sampling(out_file_name);
-        }
-        else {
-            cerr << "zero points...skip downsampling..." << endl;
-        }
+        //        ply_file_name = out_data_folder + "down_" + all_points_files[i];
 
+
+        if(true == processer->get_is_loaded()) {
+# if 1
+            out_file_name = out_data_folder +  "clean_" + all_points_files[i];
+            processer->outliers_removal(3);                    //outliers_removal
+            processer->save_ply(out_file_name);
+# endif
+# if 1
+            out_file_name = out_data_folder + "down_" + all_points_files[i];
+            processer->down_sampling(25);           //down_sampling
+            processer->save_ply(out_file_name);
+# endif
+            float radius = 25;
+            out_file_name = out_data_folder + "mls_" + qing_int_2_string((int)radius) + all_points_files[i];
+            processer->mls_resampling(radius);
+            processer->correct_normal(0.f, 0.f, 0.f);
+            processer->save_ply(out_file_name);
+        }
+        else
+        {
+            cerr << "zero points...skip point processer..." << endl;
+            continue;
+        }
     }
-
- //   step 1
- //   savename = folder + "downsample_" + filename ;
- //   refiner->downsample(savename);   //downsample
-
-    //step 2 100 1.0, iteration time = 3
-//    savename = folder + "clean_" + filename;
-//    refiner->removeoutlier(savename);
-
-
-    //savename = folder + "mls_" + filename;
-    //refiner->mlsresample(savename);*/
 
     return 1;
 }

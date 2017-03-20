@@ -11,6 +11,12 @@ PointcloudProcesser::~PointcloudProcesser() {
 }
 
 void PointcloudProcesser::load_ply(const string filename) {
+//    m_cloud = new QingPointcloud();
+//    m_cloud_filtered = new QingPointcloud();
+
+    m_cloud->clear();
+    m_cloud_filtered->clear();
+
     cout << "loading " << filename << endl;
     pcl::PLYReader reader;
     reader.read(filename, *m_cloud);
@@ -29,62 +35,47 @@ void PointcloudProcesser::save_ply(const string outfile) {
     cout << "saving " << outfile << endl;
 }
 
-void PointcloudProcesser::down_sampling(const string outfile) {
+void PointcloudProcesser::outliers_removal(int times/* = 1*/) {
+    int numk = 60;
+    double stddev = 1.0;
+
     m_cloud_filtered = m_cloud->makeShared();
-    int src_size = m_cloud->width * m_cloud->height;
-    int dst_size = m_cloud_filtered->width * m_cloud_filtered->height;
+    while(times--) {
+        pcl::StatisticalOutlierRemoval<QingPoint> sor;
+        cout << "before outliers removal: " << (m_cloud_filtered->points.size())  << " points." << std::endl;
+        sor.setInputCloud(m_cloud);
+        sor.setMeanK(numk);
+        sor.setStddevMulThresh (stddev);
+        sor.filter(*m_cloud_filtered);
 
-    //cout << src_size << ", " << dst_size << endl;
+        cout << "after: " << (m_cloud_filtered->points.size()) << " points." << std::endl;
+        m_cloud = m_cloud_filtered->makeShared();
+        numk += 20;
+    }
+}
 
-    float leafsize = 0.0f, stepsize = 0.05f;
+void PointcloudProcesser::down_sampling(int scale /*=4*/) {
+    m_cloud_filtered = m_cloud->makeShared();
+    int src_size = m_cloud->points.size();
+    int dst_size = m_cloud_filtered->points.size();
+
+    float leafsize = 0.5f;
+    float stepsize = 0.05f;
 
     pcl::VoxelGrid<QingPoint> sor;
     sor.setInputCloud(m_cloud);
-    while(dst_size == src_size) {
-        leafsize += stepsize;
+    while((dst_size * scale) > src_size) {
         sor.setLeafSize(leafsize, leafsize, leafsize);
         sor.filter(*m_cloud_filtered);
-        dst_size = m_cloud_filtered->width * m_cloud_filtered->height;
-        cout << "after down-sampling, pointcloud size: " << dst_size << ", leafsize = " << leafsize << endl;
+        dst_size = m_cloud_filtered->points.size();
+        cout << "after down-sampling, pointcloud size: " << dst_size << ", " << dst_size * scale <<  "\tsrc_size = " << src_size <<  "\tleafsize = " << leafsize << endl;
+        leafsize += stepsize;
     }
 
     m_cloud = m_cloud_filtered->makeShared();
-    src_size = m_cloud->width * m_cloud->height;
-    dst_size = m_cloud_filtered->width * m_cloud_filtered->height;
-    sor.setInputCloud(m_cloud);
-    while(dst_size * 2 > src_size) {
-        leafsize += stepsize;
-        sor.setLeafSize(leafsize, leafsize, leafsize);
-        sor.filter(*m_cloud_filtered);
-        dst_size = m_cloud_filtered->width * m_cloud_filtered->height;
-        cout << "after down-sampling, pointcloud size: " << dst_size << ", leafsize = " << leafsize << endl;
-    }
-#if 1
-    save_ply(outfile);
-# endif
-    m_cloud = m_cloud_filtered->makeShared();
 }
 
-void PointcloudProcesser::outliers_removal(const string outfile) {
-    int numk = 30;
-    double stddev = 1.0;
-
-    pcl::StatisticalOutlierRemoval<QingPoint> sor;
-    sor.setInputCloud(m_cloud);
-    sor.setMeanK(numk);
-    sor.setStddevMulThresh (stddev);
-    sor.filter(*m_cloud_filtered);
-
-    cout << "after outliers removal: " << *m_cloud_filtered << std::endl;
-# if 1
-    save_ply(outfile);
-# endif
-    m_cloud = m_cloud_filtered->makeShared();
-}
-
-void PointcloudProcesser::mls_resample(const string outfile) {
-    double radius = 0.6;
-
+void PointcloudProcesser::mls_resampling(float radius) {
     pcl::search::KdTree<QingPoint>::Ptr tree(new pcl::search::KdTree<QingPoint>());
     pcl::MovingLeastSquares<QingPoint, QingPoint> mls;
 
@@ -95,9 +86,34 @@ void PointcloudProcesser::mls_resample(const string outfile) {
     mls.setSearchRadius(radius);
     mls.process(*m_cloud_filtered);
 
-    cout << "after msl_resample: " << *m_cloud_filtered << endl;
-# if 1
-    save_ply(outfile);
-# endif
+    cout << "after msl_resample: " << m_cloud_filtered->points.size() << endl;
+    m_cloud = m_cloud_filtered->makeShared();
+
+}
+
+void PointcloudProcesser::correct_normal(float vx, float vy, float vz) {
+    m_cloud_filtered = m_cloud->makeShared();
+
+    int size = m_cloud_filtered->points.size();
+    float v_px, v_py, v_pz, dot_val;
+    float nx, ny, nz;
+
+    for(int i = 0; i < size; ++i) {
+        QingPoint pt = m_cloud_filtered->points[i];
+
+        v_px = vx - pt.x ;
+        v_py = vy - pt.y ;
+        v_pz = vz - pt.z ;
+        nx = pt.normal[0];
+        ny = pt.normal[1];
+        nz = pt.normal[2];
+
+        dot_val = v_px * nx + v_py * ny + v_pz * nz;
+        if(dot_val < 0) {
+            m_cloud_filtered->points[i].normal[0] = -nx;
+            m_cloud_filtered->points[i].normal[1] = -ny;
+            m_cloud_filtered->points[i].normal[2] = -nz;
+        }
+    }
     m_cloud = m_cloud_filtered->makeShared();
 }

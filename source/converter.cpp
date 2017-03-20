@@ -17,7 +17,7 @@ void PointcloudConverter::load_src_ply(const string infile) {
     else {m_is_loaded = true;}
 
     cout << "Pointcloud size: " << m_src_cloud->width * m_src_cloud->height
-         << " data points (" << pcl::getFieldsList(*m_cloud) << "). " << endl;
+         << " data points (" << pcl::getFieldsList(*m_src_cloud) << "). " << endl;
 }
 
 void PointcloudConverter::save_dst_ply(const string outfile) {
