@@ -42,12 +42,15 @@ int main(int argc, char * argv[])
     }
 
     string frame = argv[1];   //"FRM_0259";
-    string data_folder = "../../HumanDatas_20161224/point_results/";
+    //string data_folder = "/media/ranqing/QING-WD/ZJU/HumanResults/20161224/scanner_pointclouds/";
+    string data_folder = "/media/ranqing/ranqing_wd/ZJU/HumanResults/20161224/scanner_pointclouds/";
     string frame_data_folder = data_folder + frame + "/";
     cout << frame_data_folder << endl;
 
     string out_data_folder = "./" + frame + "/";
+//    string out_data_folder = "/media/ranqing/QING-WD/ZJU/HumanResults/20161224/postprocess_pointclouds/" + frame + "/";
     qing_create_dir(out_data_folder);
+    cout << out_data_folder << endl;
 
     vector<string> all_points_files(0);
     qing_get_all_files(frame_data_folder, all_points_files);
@@ -73,22 +76,25 @@ int main(int argc, char * argv[])
         ply_file_name = frame_data_folder + all_points_files[i];
         processer->load_ply(ply_file_name);
 
-        //        ply_file_name = out_data_folder + "down_" + all_points_files[i];
-
-
         if(true == processer->get_is_loaded()) {
-# if 1
-            out_file_name = out_data_folder +  "clean_" + all_points_files[i];
+          //  processer->down_sampling(2);
+
             processer->outliers_removal(3);                    //outliers_removal
+# if 0
+            out_file_name = out_data_folder +  "clean_" + all_points_files[i];
             processer->save_ply(out_file_name);
 # endif
-# if 1
+
+            processer->down_sampling(10);           //down_sampling
+# if 0
             out_file_name = out_data_folder + "down_" + all_points_files[i];
-            processer->down_sampling(25);           //down_sampling
             processer->save_ply(out_file_name);
 # endif
-            float radius = 25;
-            out_file_name = out_data_folder + "mls_" + qing_int_2_string((int)radius) + all_points_files[i];
+
+            float radius = 20;
+            if(-1 != ply_file_name.find("A01A02")) radius = 25;
+
+            out_file_name = out_data_folder + /*"mls_" + qing_int_2_string((int)radius) +*/ all_points_files[i];
             processer->mls_resampling(radius);
             processer->correct_normal(0.f, 0.f, 0.f);
             processer->save_ply(out_file_name);

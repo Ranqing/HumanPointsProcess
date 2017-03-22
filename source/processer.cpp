@@ -76,6 +76,7 @@ void PointcloudProcesser::down_sampling(int scale /*=4*/) {
 }
 
 void PointcloudProcesser::mls_resampling(float radius) {
+    cout << "mls-resampling radius = " << radius << endl;
     pcl::search::KdTree<QingPoint>::Ptr tree(new pcl::search::KdTree<QingPoint>());
     pcl::MovingLeastSquares<QingPoint, QingPoint> mls;
 
